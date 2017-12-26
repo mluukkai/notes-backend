@@ -6,14 +6,14 @@ const cors = require('cors')
 const mongoose = require('mongoose')
 const middleware = require('./utils/middleware')
 const Note = require('./models/note')
+const config = require('./utils/config')
 
 app.use(cors())
 app.use(bodyParser.json())
 app.use(express.static('build'))
-app.use(middleware.error)
+app.use(middleware.logger)
 
-const mongoUrl = process.env.MONGODB_URI
-mongoose.connect(mongoUrl, { useMongoClient: true })
+mongoose.connect(config.mongoUrl, { useMongoClient: true })
 mongoose.Promise = global.Promise
 
 const notesRouter = require('./controllers/notes')
@@ -21,7 +21,17 @@ app.use('/api/notes', notesRouter)
 
 app.use(middleware.error)
 
-const PORT = process.env.PORT || 3001
-app.listen(PORT, () => {
+const PORT = config.port
+const server = http.createServer(app)
+
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+
+server.on('close', () => {
+  mongoose.connection.close()
+})
+
+module.exports = {
+  app, server
+}
